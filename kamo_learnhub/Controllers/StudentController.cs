@@ -120,5 +120,61 @@ namespace kamo_learnhub.Controllers
 
       return NoContent();
     }
+
+
+    [HttpPost("register")]
+
+    public async Task<IActionResult> RegisterStudent(RegisterStudentDTO rDTO)
+
+    {
+
+      using var transaction = await _context.Database.BeginTransactionAsync();
+
+      try
+      {
+        var user = new User
+        {
+
+          Name = rDTO.Name,
+          Surname = rDTO.Surname,
+          Email = rDTO.Email,
+          PasswordHash = rDTO.Password,
+          PhoneNumber = rDTO.PhoneNumber,
+          UserRole_ID = 2
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+
+
+        // 2️⃣ Create Student Profile
+        var student = new StudentProfile
+        {
+          User_ID = user.User_ID,
+          Grade = rDTO.Grade,
+          Curriculum = rDTO.Curriculum,
+          IsActive = true
+        };
+
+        _context.StudentProfiles.Add(student);
+        await _context.SaveChangesAsync();
+
+        await transaction.CommitAsync();
+
+
+        return Ok(new
+        {
+          user.User_ID,
+          student.Student_ID
+        });
+
+      }
+      catch
+      {
+        await transaction.RollbackAsync();
+        throw;
+      }
+    }
   }
 }
