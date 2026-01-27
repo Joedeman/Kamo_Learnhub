@@ -10,10 +10,12 @@ namespace kamo_learnhub.Controllers
   public class StudentController : ControllerBase
   {
     private readonly LearnHubContext _context;
+    private readonly IWebHostEnvironment _env;
 
-    public StudentController(LearnHubContext context)
+    public StudentController(LearnHubContext context, IWebHostEnvironment env)
     {
       _context = context;
+      _env = env;
     }
 
     // GET: api/Student
@@ -175,6 +177,35 @@ namespace kamo_learnhub.Controllers
         await transaction.RollbackAsync();
         throw;
       }
+
+
     }
+
+
+
+    [HttpPost("upload")]
+    public async Task<IActionResult> Upload(IFormFile file)
+    {
+      if (file == null || file.Length == 0)
+        return BadRequest("No file uploaded.");
+
+      // Optionally: check file type and size
+      if (!file.ContentType.StartsWith("video/"))
+        return BadRequest("Invalid file type. Only videos allowed.");
+
+      var uploadsFolder = Path.Combine(_env.ContentRootPath, "Uploads", "Videos");
+      if (!Directory.Exists(uploadsFolder))
+        Directory.CreateDirectory(uploadsFolder);
+
+      var filePath = Path.Combine(uploadsFolder, file.FileName);
+
+      using (var stream = new FileStream(filePath, FileMode.Create))
+      {
+        await file.CopyToAsync(stream);
+      }
+
+      return Ok(new { message = "Video uploaded successfully", fileName = file.FileName });
+    }
+
   }
 }
